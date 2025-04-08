@@ -1,20 +1,20 @@
 # 🚀 Deploying the Application to EKS
-1. Log in to AWS
+### 1. Login to AWS
 Make sure you're authenticated with your AWS account.
 
-2. Set up your kubeconfig
+### 2. Set up your kubeconfig
 Run the following command to configure access to your EKS cluster:
 ```bash
 aws eks --region eu-west-2 update-kubeconfig --name <cluster-name>
 ```
 
-3.Deploy the application
+### 3.Deploy the application
 Apply the Kubernetes manifests to start the deployment:
 ```bash
 kubectl apply -f release/kubernetes-manifests.yaml
 ```
 
-4. Get the load balancer address
+### 4. Get the load balancer address
 Once the deployment is complete, retrieve the external IP:
 ```bash
 kubectl get svc frontend-external
