@@ -12,6 +12,8 @@ aws ecr get-login-password --region eu-west-2 | docker login --username AWS --pa
 sudo docker-compose up   
 ```
 
+> Note: if you encounter an error running the above, trying running without `sudo`.
+
 4. Visit the page and try to add loafers. YOU CAN'T.
 ```bash
 http://localhost:8080
