@@ -100,6 +100,7 @@ metadata:
   labels:
     app: checkoutservice
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: checkoutservice
