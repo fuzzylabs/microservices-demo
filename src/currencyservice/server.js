@@ -82,6 +82,36 @@ const PORT = process.env.PORT;
 const shopProto = _loadProto(MAIN_PROTO_PATH).hipstershop;
 const healthProto = _loadProto(HEALTH_PROTO_PATH).grpc.health.v1;
 
+const fetch = require('node-fetch'); // If using Node <18
+// or just use `fetch` directly if using Node 18+
+
+async function notifySlack() {
+  const slackToken = process.env.SLACK_BOT_TOKEN;
+  if (!slackToken) {
+    console.warn("SLACK_BOT_TOKEN is not set.");
+    return;
+  }
+
+  const message = `🚨 I have detected an error within the currencyservice when someone tried to switch currency. Let me see what I can do.`;
+
+  const response = await fetch("https://slack.com/api/chat.postMessage", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${slackToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      channel: "C08M5SMJ0KW",
+      text: message
+    })
+  });
+
+  const result = await response.json();
+  if (!result.ok) {
+    console.error(`Slack error: ${result.error}`);
+  }
+}
+
 /**
  * Helper function that loads a protobuf file.
  */
@@ -136,6 +166,20 @@ function convert (call, callback) {
   try {
     _getCurrencyData((data) => {
       const request = call.request;
+
+      // Development code, remove later
+      if (request.from.currency_code === 'GBP' || request.to_code === 'GBP') {
+        notifySlack()
+        // Attempt recovery by converting to EUR
+        const result = {
+          units: request.from.units,
+          nanos: request.from.nanos,
+          currency_code: 'USD'
+        };
+        logger.info(`Attempting recovery by converting to EUR`);
+        callback(null, result);
+        return;
+      }
 
       // Convert: from_currency --> EUR
       const from = request.from;
