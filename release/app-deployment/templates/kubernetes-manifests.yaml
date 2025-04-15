@@ -566,6 +566,11 @@ spec:
         env:
         - name: REDIS_ADDR
           value: "redis-cart:6379"
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-bot-secret
+              key: SLACK_BOT_TOKEN
         resources:
           requests:
             cpu: 200m

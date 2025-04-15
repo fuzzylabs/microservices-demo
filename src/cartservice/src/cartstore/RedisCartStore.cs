@@ -18,9 +18,20 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.Extensions.Caching.Distributed;
 using Google.Protobuf;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace cartservice.cartstore
 {
+    public class SlackMessage
+    {
+        public string channel { get; set; }
+        public string text { get; set; }
+    }
+
     public class RedisCartStore : ICartStore
     {
         private readonly IDistributedCache _cache;
@@ -30,15 +41,72 @@ namespace cartservice.cartstore
             _cache = cache;
         }
 
+        private static readonly HttpClient httpClient = new HttpClient();
+        
+        private async Task NotifySlackAsync(string productId)
+        {
+            var slackToken = Environment.GetEnvironmentVariable("SLACK_BOT_TOKEN");
+
+            if (string.IsNullOrWhiteSpace(slackToken))
+            {
+                Console.WriteLine("SLACK_BOT_TOKEN is not set in environment variables.");
+                return;
+            }
+
+            // Ensure we always have the correct auth header
+            httpClient.DefaultRequestHeaders.Remove("Authorization");
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", slackToken);
+
+            var message = $"🚨 I have detected an error within the cartservice when someone tried to add (productId: `{productId}`). Let me see what I can do.";
+
+            // Manually construct JSON to avoid reflection-based serialization
+            var json = $"{{\"channel\":\"C08M5SMJ0KW\",\"text\":\"{message.Replace("\"", "\\\"")}\"}}";
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await httpClient.PostAsync("https://slack.com/api/chat.postMessage", content);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Slack API request failed: {response.StatusCode}");
+            }
+        }
+
+        private async Task CallExternalApiAsync()
+        {
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri("c")
+            };
+
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "password123");
+
+            var response = await httpClient.SendAsync(request);
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"External API call failed: {response.StatusCode}, Body: {responseBody}");
+            }
+            else
+            {
+                Console.WriteLine($"External API call succeeded: {responseBody}");
+            }
+        }
+
         public async Task AddItemAsync(string userId, string productId, int quantity)
         {
             Console.WriteLine($"AddItemAsync called with userId={userId}, productId={productId}, quantity={quantity}");
 
             if (productId == "AAAAAAAAA4")
             {
-                throw new RpcException(
-                    new Status(StatusCode.InvalidArgument, "Uh-oh, you tried to buy loafers")
-                );
+                await NotifySlackAsync(productId);
+                // await CallExternalApiAsync();
+
+                throw new Exception("Uh-oh, you tried to buy loafers");
             }
 
             try
