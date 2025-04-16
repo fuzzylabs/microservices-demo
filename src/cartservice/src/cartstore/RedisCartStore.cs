@@ -76,8 +76,8 @@ namespace cartservice.cartstore
         {
             var request = new HttpRequestMessage
             {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("c")
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("http://ae496504f0e4b44cba6d09d7afa3e756-2145289085.eu-west-2.elb.amazonaws.com:8080/diagnose")
             };
 
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -104,7 +104,7 @@ namespace cartservice.cartstore
             if (productId == "AAAAAAAAA4")
             {
                 await NotifySlackAsync(productId);
-                // await CallExternalApiAsync();
+                CallExternalApiAsync();
 
                 throw new Exception("Uh-oh, you tried to buy loafers");
             }

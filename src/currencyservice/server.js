@@ -73,6 +73,7 @@ else {
 const path = require('path');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
+const fs = require('fs').promises;
 
 const MAIN_PROTO_PATH = path.join(__dirname, './proto/demo.proto');
 const HEALTH_PROTO_PATH = path.join(__dirname, './proto/grpc/health/v1/health.proto');
@@ -167,20 +168,6 @@ function convert (call, callback) {
     _getCurrencyData((data) => {
       const request = call.request;
 
-      // Development code, remove later
-      if (request.from.currency_code === 'GBP' || request.to_code === 'GBP') {
-        notifySlack()
-        // Attempt recovery by converting to EUR
-        const result = {
-          units: request.from.units,
-          nanos: request.from.nanos,
-          currency_code: 'USD'
-        };
-        logger.info(`Attempting recovery by converting to EUR`);
-        callback(null, result);
-        return;
-      }
-
       // Convert: from_currency --> EUR
       const from = request.from;
       const euros = _carry({
@@ -199,6 +186,23 @@ function convert (call, callback) {
       result.units = Math.floor(result.units);
       result.nanos = Math.floor(result.nanos);
       result.currency_code = request.to_code;
+
+      // Check if this is a currency switch (from a different currency)
+      if (request.from.currency_code !== request.to_code) {
+        // Check if the result is zero
+        if (result.units === 0 && result.nanos === 0) {
+          logger.error(`Currency conversion resulted in zero amount, switching back to original currency`);
+          notifySlack();
+          
+          // Switch back to the original currency
+          result.currency_code = request.from.currency_code;
+          result.units = request.from.units;
+          result.nanos = request.from.nanos;
+          
+          callback(null, result);
+          return;
+        }
+      }
 
       logger.info(`conversion request successful`);
       callback(null, result);
