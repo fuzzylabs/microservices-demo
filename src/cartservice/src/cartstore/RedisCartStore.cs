@@ -57,7 +57,7 @@ namespace cartservice.cartstore
             httpClient.DefaultRequestHeaders.Remove("Authorization");
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", slackToken);
 
-            var message = $"🚨 I have detected an error within the cartservice when someone tried to add (productId: `{productId}`). Let me see what I can do.";
+            var message = $"🚨 I have detected a 'CRITICAL' error within the cartservice when someone tried to add (productId: `{productId}`). Let me see what I can do. 👀";
 
             // Manually construct JSON to avoid reflection-based serialization
             var json = $"{{\"channel\":\"C08M5SMJ0KW\",\"text\":\"{message.Replace("\"", "\\\"")}\"}}";
@@ -77,7 +77,7 @@ namespace cartservice.cartstore
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
-                RequestUri = new Uri("http://ae496504f0e4b44cba6d09d7afa3e756-2145289085.eu-west-2.elb.amazonaws.com:8080/diagnose")
+                RequestUri = new Uri("http://aa9781ba0ef2a41e68cdc7c3e7e6bb0e-1567177087.eu-west-2.elb.amazonaws.com/diagnose")
             };
 
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

@@ -86,14 +86,28 @@ const healthProto = _loadProto(HEALTH_PROTO_PATH).grpc.health.v1;
 const fetch = require('node-fetch'); // If using Node <18
 // or just use `fetch` directly if using Node 18+
 
+// Track the last time notifySlack was called
+let lastNotificationTime = 0;
+const NOTIFICATION_COOLDOWN = 60000; // 60 seconds in milliseconds
+
 async function notifySlack() {
+  // Check if enough time has passed since the last notification
+  const now = Date.now();
+  if (now - lastNotificationTime < NOTIFICATION_COOLDOWN) {
+    logger.info(`Skipping Slack notification due to cooldown period`);
+    return;
+  }
+  
+  // Update the last notification time
+  lastNotificationTime = now;
+  
   const slackToken = process.env.SLACK_BOT_TOKEN;
   if (!slackToken) {
     console.warn("SLACK_BOT_TOKEN is not set.");
     return;
   }
 
-  const message = `🚨 I have detected an error within the currencyservice when someone tried to switch currency. Let me see what I can do.`;
+  const message = `🚨 I've detected an error in the currencyservice during a currency switch attempt. Run the \`/diagnose\` command if you'd like me to investigate.`;
 
   const response = await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
