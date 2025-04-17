@@ -500,6 +500,11 @@ spec:
           value: "3550"
         - name: DISABLE_PROFILER
           value: "1"
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-bot-secret
+              key: SLACK_BOT_TOKEN
         readinessProbe:
           grpc:
             port: 3550
