@@ -37,6 +37,12 @@ async function notifySlack() {
     return;
   }
 
+  const slackChannelID = process.env.SLACK_CHANNEL_ID;
+  if (!slackChannelID) {
+    console.warn("SLACK_CHANNEL_ID is not set.");
+    return;
+  }
+
   const message = `🚨 I have detected an error within the paymentservice when someone placed an order. Run the \`/diagnose\` command if you'd like me to investigate.`;
 
   const response = await fetch("https://slack.com/api/chat.postMessage", {
@@ -46,7 +52,7 @@ async function notifySlack() {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      channel: "C08M5SMJ0KW",
+      channel: `${slackChannelID}`,
       text: message
     })
   });
