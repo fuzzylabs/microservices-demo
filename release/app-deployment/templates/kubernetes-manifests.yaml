@@ -285,7 +285,8 @@ spec:
                 - ALL
             privileged: false
             readOnlyRootFilesystem: true
-          image: us-central1-docker.pkg.dev/google-samples/microservices-demo/frontend:v0.10.2
+          image: "{{ .Values.image.repository_uri }}/frontend:fshop"
+          imagePullPolicy: Always
           ports:
           - containerPort: 8080
           readinessProbe:
@@ -412,7 +413,8 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: us-central1-docker.pkg.dev/google-samples/microservices-demo/paymentservice:v0.10.2
+        image: "{{ .Values.image.repository_uri }}/paymentservice:latest"
+        imagePullPolicy: Always
         ports:
         - containerPort: 50051
         env:
@@ -420,6 +422,16 @@ spec:
           value: "50051"
         - name: DISABLE_PROFILER
           value: "1"
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-bot-secret
+              key: SLACK_BOT_TOKEN
+        - name: SLACK_CHANNEL_ID
+          valueFrom:
+            secretKeyRef:
+              name: slack-channel-id
+              key: SLACK_CHANNEL_ID
         readinessProbe:
           grpc:
             port: 50051
@@ -485,7 +497,8 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: us-central1-docker.pkg.dev/google-samples/microservices-demo/productcatalogservice:v0.10.2
+        image: "{{ .Values.image.repository_uri }}/productcatalogservice:fshop"
+        imagePullPolicy: Always
         ports:
         - containerPort: 3550
         env:
@@ -493,6 +506,11 @@ spec:
           value: "3550"
         - name: DISABLE_PROFILER
           value: "1"
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-bot-secret
+              key: SLACK_BOT_TOKEN
         readinessProbe:
           grpc:
             port: 3550
@@ -558,12 +576,33 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/cartservice:no-loafers
+        image: "{{ .Values.image.repository_uri }}/cartservice:no-loafers"
+        imagePullPolicy: Always
         ports:
         - containerPort: 7070
         env:
         - name: REDIS_ADDR
           value: "redis-cart:6379"
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-bot-secret
+              key: SLACK_BOT_TOKEN
+        - name: SLACK_CHANNEL_ID
+          valueFrom:
+            secretKeyRef:
+              name: slack-channel-id
+              key: SLACK_CHANNEL_ID
+        - name: MCP_CLIENT_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: mcp-client-endpoint
+              key: MCP_CLIENT_ENDPOINT
+        - name: CLIENT_ENDPOINT_BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: client-endpoint-bearer-token
+              key: CLIENT_ENDPOINT_BEARER_TOKEN
         resources:
           requests:
             cpu: 200m
@@ -670,91 +709,91 @@ spec:
     port: 6379
     targetPort: 6379
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: loadgenerator
-  labels:
-    app: loadgenerator
-spec:
-  selector:
-    matchLabels:
-      app: loadgenerator
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: loadgenerator
-      annotations:
-        sidecar.istio.io/rewriteAppHTTPProbers: "true"
-    spec:
-      serviceAccountName: loadgenerator
-      terminationGracePeriodSeconds: 5
-      restartPolicy: Always
-      securityContext:
-        fsGroup: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        runAsUser: 1000
-      initContainers:
-      - command:
-        - /bin/sh
-        - -exc
-        - |
-          MAX_RETRIES=12
-          RETRY_INTERVAL=10
-          for i in $(seq 1 $MAX_RETRIES); do
-            echo "Attempt $i: Pinging frontend: ${FRONTEND_ADDR}..."
-            STATUSCODE=$(wget --server-response http://${FRONTEND_ADDR} 2>&1 | awk '/^  HTTP/{print $2}')
-            if [ $STATUSCODE -eq 200 ]; then
-                echo "Frontend is reachable."
-                exit 0
-            fi
-            echo "Error: Could not reach frontend - Status code: ${STATUSCODE}"
-            sleep $RETRY_INTERVAL
-          done
-          echo "Failed to reach frontend after $MAX_RETRIES attempts."
-          exit 1
-        name: frontend-check
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-              - ALL
-          privileged: false
-          readOnlyRootFilesystem: true
-        image: busybox:latest
-        env:
-        - name: FRONTEND_ADDR
-          value: "frontend:80"
-      containers:
-      - name: main
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-              - ALL
-          privileged: false
-          readOnlyRootFilesystem: true
-        image: us-central1-docker.pkg.dev/google-samples/microservices-demo/loadgenerator:v0.10.2
-        env:
-        - name: FRONTEND_ADDR
-          value: "frontend:80"
-        - name: USERS
-          value: "10"
-        resources:
-          requests:
-            cpu: 300m
-            memory: 256Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: loadgenerator
----
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: loadgenerator
+#   labels:
+#     app: loadgenerator
+# spec:
+#   selector:
+#     matchLabels:
+#       app: loadgenerator
+#   replicas: 1
+#   template:
+#     metadata:
+#       labels:
+#         app: loadgenerator
+#       annotations:
+#         sidecar.istio.io/rewriteAppHTTPProbers: "true"
+#     spec:
+#       serviceAccountName: loadgenerator
+#       terminationGracePeriodSeconds: 5
+#       restartPolicy: Always
+#       securityContext:
+#         fsGroup: 1000
+#         runAsGroup: 1000
+#         runAsNonRoot: true
+#         runAsUser: 1000
+#       initContainers:
+#       - command:
+#         - /bin/sh
+#         - -exc
+#         - |
+#           MAX_RETRIES=12
+#           RETRY_INTERVAL=10
+#           for i in $(seq 1 $MAX_RETRIES); do
+#             echo "Attempt $i: Pinging frontend: ${FRONTEND_ADDR}..."
+#             STATUSCODE=$(wget --server-response http://${FRONTEND_ADDR} 2>&1 | awk '/^  HTTP/{print $2}')
+#             if [ $STATUSCODE -eq 200 ]; then
+#                 echo "Frontend is reachable."
+#                 exit 0
+#             fi
+#             echo "Error: Could not reach frontend - Status code: ${STATUSCODE}"
+#             sleep $RETRY_INTERVAL
+#           done
+#           echo "Failed to reach frontend after $MAX_RETRIES attempts."
+#           exit 1
+#         name: frontend-check
+#         securityContext:
+#           allowPrivilegeEscalation: false
+#           capabilities:
+#             drop:
+#               - ALL
+#           privileged: false
+#           readOnlyRootFilesystem: true
+#         image: busybox:latest
+#         env:
+#         - name: FRONTEND_ADDR
+#           value: "frontend:80"
+#       containers:
+#       - name: main
+#         securityContext:
+#           allowPrivilegeEscalation: false
+#           capabilities:
+#             drop:
+#               - ALL
+#           privileged: false
+#           readOnlyRootFilesystem: true
+#         image: us-central1-docker.pkg.dev/google-samples/microservices-demo/loadgenerator:v0.10.2
+#         env:
+#         - name: FRONTEND_ADDR
+#           value: "frontend:80"
+#         - name: USERS
+#           value: "10"
+#         resources:
+#           requests:
+#             cpu: 300m
+#             memory: 256Mi
+#           limits:
+#             cpu: 500m
+#             memory: 512Mi
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: loadgenerator
+# ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -786,7 +825,8 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: us-central1-docker.pkg.dev/google-samples/microservices-demo/currencyservice:v0.10.2
+        image: "{{ .Values.image.repository_uri }}/currencyservice:latest"
+        imagePullPolicy: Always
         ports:
         - name: grpc
           containerPort: 7000
@@ -795,6 +835,16 @@ spec:
           value: "7000"
         - name: DISABLE_PROFILER
           value: "1"
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-bot-secret
+              key: SLACK_BOT_TOKEN
+        - name: SLACK_CHANNEL_ID
+          valueFrom:
+            secretKeyRef:
+              name: slack-channel-id
+              key: SLACK_CHANNEL_ID
         readinessProbe:
           grpc:
             port: 7000
@@ -859,7 +909,8 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: us-central1-docker.pkg.dev/google-samples/microservices-demo/shippingservice:v0.10.2
+        image: "{{ .Values.image.repository_uri }}/shippingservice:latest"
+        imagePullPolicy: Always
         ports:
         - containerPort: 50051
         env:
@@ -867,6 +918,11 @@ spec:
           value: "50051"
         - name: DISABLE_PROFILER
           value: "1"
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-bot-secret
+              key: SLACK_BOT_TOKEN
         readinessProbe:
           periodSeconds: 5
           grpc:
