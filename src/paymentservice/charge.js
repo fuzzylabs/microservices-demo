@@ -37,7 +37,7 @@ async function notifySlack() {
     return;
   }
 
-  const message = `🚨 I have detected an error within the paymentservice when someone tried to place an order. Let me see what I can do.`;
+  const message = `🚨 I have detected an error within the paymentservice when someone placed an order. Run the \`/diagnose\` command if you'd like me to investigate.`;
 
   const response = await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
