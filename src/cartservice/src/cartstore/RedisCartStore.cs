@@ -35,17 +35,26 @@ namespace cartservice.cartstore
     public class RedisCartStore : ICartStore
     {
         private readonly IDistributedCache _cache;
+        private static readonly HttpClient httpClient = new HttpClient();
+        private readonly string slackToken;
+        private readonly string slackChannel;
+        private readonly string mcpClientEndpoint;
+        private readonly string clientEndpointBearerToken;
 
         public RedisCartStore(IDistributedCache cache)
         {
             _cache = cache;
-        }
+            slackToken = Environment.GetEnvironmentVariable("SLACK_BOT_TOKEN");
+            slackChannel = Environment.GetEnvironmentVariable("SLACK_CHANNEL_ID");
+            mcpClientEndpoint = Environment.GetEnvironmentVariable("MCP_CLIENT_ENDPOINT");
+            clientEndpointBearerToken = Environment.GetEnvironmentVariable("CLIENT_ENDPOINT_BEARER_TOKEN");
 
-        private static readonly HttpClient httpClient = new HttpClient();
+            Console.WriteLine($"Environment variables loaded - Slack Token: {!string.IsNullOrEmpty(slackToken)}, Channel: {!string.IsNullOrEmpty(slackChannel)}, MCP Endpoint: {!string.IsNullOrEmpty(mcpClientEndpoint)}, Bearer Token: {!string.IsNullOrEmpty(clientEndpointBearerToken)}");
+        }
         
         private async Task NotifySlackAsync(string productId)
         {
-            var slackToken = Environment.GetEnvironmentVariable("SLACK_BOT_TOKEN");
+            Console.WriteLine("Starting Slack notification process...");
 
             if (string.IsNullOrWhiteSpace(slackToken))
             {
@@ -53,22 +62,50 @@ namespace cartservice.cartstore
                 return;
             }
 
-            // Ensure we always have the correct auth header
-            httpClient.DefaultRequestHeaders.Remove("Authorization");
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", slackToken);
-
-            var message = $"🚨 I have detected a 'CRITICAL' error within the cartservice when someone tried to add (productId: `{productId}`). Let me see what I can do. 👀";
-
-            // Manually construct JSON to avoid reflection-based serialization
-            var json = $"{{\"channel\":\"C08M5SMJ0KW\",\"text\":\"{message.Replace("\"", "\\\"")}\"}}";
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
-            var response = await httpClient.PostAsync("https://slack.com/api/chat.postMessage", content);
-            var responseBody = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
+            if (string.IsNullOrWhiteSpace(slackChannel))
             {
-                Console.WriteLine($"Slack API request failed: {response.StatusCode}");
+                Console.WriteLine("SLACK_CHANNEL_ID is not set in environment variables.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(mcpClientEndpoint))
+            {
+                Console.WriteLine("MCP_CLIENT_ENDPOINT is not set in environment variables.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(clientEndpointBearerToken))
+            {
+                Console.WriteLine("CLIENT_ENDPOINT_BEARER_TOKEN is not set in environment variables.");
+                return;
+            }
+
+            try
+            {
+                // Ensure we always have the correct auth header
+                httpClient.DefaultRequestHeaders.Remove("Authorization");
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", slackToken);
+
+                var message = $"🚨 I have detected a 'CRITICAL' error within the cartservice when someone tried to add (productId: `{productId}`). Let me see what I can do. 👀";
+                Console.WriteLine($"Preparing to send Slack message: {message}");
+
+                // Manually construct JSON to avoid reflection-based serialization
+                var json = $"{{\"channel\":\"{slackChannel}\",\"text\":\"{message}\"}}";
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                Console.WriteLine("Sending request to Slack API...");
+                var response = await httpClient.PostAsync("https://slack.com/api/chat.postMessage", content);
+                var responseBody = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Slack API response: {response.StatusCode}, Body: {responseBody}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Slack API request failed: {response.StatusCode}, Response: {responseBody}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception while sending Slack notification: {ex}");
             }
         }
 
@@ -77,11 +114,11 @@ namespace cartservice.cartstore
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
-                RequestUri = new Uri("http://aa9781ba0ef2a41e68cdc7c3e7e6bb0e-1567177087.eu-west-2.elb.amazonaws.com/diagnose")
+                RequestUri = new Uri(mcpClientEndpoint)
             };
 
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "password123");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", clientEndpointBearerToken);
 
             var response = await httpClient.SendAsync(request);
 

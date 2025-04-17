@@ -582,6 +582,21 @@ spec:
             secretKeyRef:
               name: slack-bot-secret
               key: SLACK_BOT_TOKEN
+        - name: SLACK_CHANNEL_ID
+          valueFrom:
+            secretKeyRef:
+              name: slack-channel-id
+              key: SLACK_CHANNEL_ID
+        - name: MCP_CLIENT_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: mcp-client-endpoint
+              key: MCP_CLIENT_ENDPOINT
+        - name: CLIENT_ENDPOINT_BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: client-endpoint-bearer-token
+              key: CLIENT_ENDPOINT_BEARER_TOKEN
         resources:
           requests:
             cpu: 200m
