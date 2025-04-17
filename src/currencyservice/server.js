@@ -106,7 +106,12 @@ async function notifySlack() {
     console.warn("SLACK_BOT_TOKEN is not set.");
     return;
   }
-
+  
+  const slackChannelID = process.env.SLACK_CHANNEL_ID;
+  if (!slackChannelID) {
+    console.warn("SLACK_CHANNEL_ID is not set.");
+    return;
+  }
   const message = `🚨 I've detected an error in the currencyservice during a currency switch attempt. Run the \`/diagnose\` command if you'd like me to investigate.`;
 
   const response = await fetch("https://slack.com/api/chat.postMessage", {
@@ -116,7 +121,7 @@ async function notifySlack() {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      channel: "C08M5SMJ0KW",
+      channel: `${slackChannelID}`,
       text: message
     })
   });

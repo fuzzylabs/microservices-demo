@@ -834,6 +834,11 @@ spec:
             secretKeyRef:
               name: slack-bot-secret
               key: SLACK_BOT_TOKEN
+        - name: SLACK_CHANNEL_ID
+          valueFrom:
+            secretKeyRef:
+              name: slack-channel-id
+              key: SLACK_CHANNEL_ID
         readinessProbe:
           grpc:
             port: 7000
