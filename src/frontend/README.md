@@ -1,13 +1,21 @@
 # Frontend Service
 
+This is the main frontend service for the Online Boutique application. It handles all web traffic and communicates with the backend microservices.
+
+## Development
+
 Run the following command to restore dependencies to `vendor/` directory:
 
 ```bash
 dep ensure --vendor-only
 ```
 
-## Description
-This is the frontend service for the Online Boutique microservices demo application. It provides the user interface for customers to browse products, add items to cart, and complete the checkout process.
+## Running Locally
 
-## Local Development
-After restoring dependencies, you can run the service locally for development purposes.
+To run the frontend service locally, make sure you have Go installed and run:
+
+```bash
+go run main.go
+```
+
+The service will be available at http://localhost:8080
