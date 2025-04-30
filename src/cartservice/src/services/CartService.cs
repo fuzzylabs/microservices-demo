@@ -37,9 +37,9 @@ namespace cartservice.services
             return Empty;
         }
 
-        public override Task<Cart> GetCart(GetCartRequest request, ServerCallContext context)
+        public async override Task<Cart> GetCart(GetCartRequest request, ServerCallContext context)
         {
-            return _cartStore.GetCartAsync(request.UserId);
+            return await _cartStore.GetCartAsync(request.UserId);
         }
 
         public async override Task<Empty> EmptyCart(EmptyCartRequest request, ServerCallContext context)
