@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: us-central1-docker.pkg.dev/google-samples/microservices-demo/frontend:v0.10.2
+    image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/frontend:fshop
     ports:
       - "8080:8080"
     environment:
@@ -23,13 +23,13 @@ services:
       - adservice
 
   productcatalogservice:
-    image: us-central1-docker.pkg.dev/google-samples/microservices-demo/productcatalogservice:v0.10.2
+    image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/productcatalogservice:fshop
     environment:
       - PORT=3550
       - DISABLE_PROFILER=1
 
   currencyservice:
-    image: us-central1-docker.pkg.dev/google-samples/microservices-demo/currencyservice:v0.10.2
+    image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/currencyservice:latest
     environment:
       - PORT=7000
       - DISABLE_PROFILER=1
@@ -54,13 +54,13 @@ services:
       - DISABLE_PROFILER=1
 
   shippingservice:
-    image: us-central1-docker.pkg.dev/google-samples/microservices-demo/shippingservice:v0.10.2
+    image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/shippingservice:latest
     environment:
       - PORT=50051
       - DISABLE_PROFILER=1
 
   checkoutservice:
-    image: us-central1-docker.pkg.dev/google-samples/microservices-demo/checkoutservice:v0.10.2
+    image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/checkoutservice:latest
     environment:
       - PORT=5050
       - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
@@ -71,7 +71,7 @@ services:
       - CART_SERVICE_ADDR=cartservice:7070
 
   paymentservice:
-    image: us-central1-docker.pkg.dev/google-samples/microservices-demo/paymentservice:v0.10.2
+    image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/paymentservice:latest
     environment:
       - PORT=50051
       - DISABLE_PROFILER=1
