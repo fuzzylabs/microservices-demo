@@ -20,7 +20,7 @@ const logger = pino({
   name: 'paymentservice-charge',
   messageKey: 'message',
   formatters: {
-    level (logLevelString, logLevelNum) {
+    level(logLevelString, logLevelNum) {
       return { severity: logLevelString }
     }
   }
@@ -64,26 +64,26 @@ async function notifySlack() {
 }
 
 class CreditCardError extends Error {
-  constructor (message) {
+  constructor(message) {
     super(message);
     this.code = 400; // Invalid argument error
   }
 }
 
 class InvalidCreditCard extends CreditCardError {
-  constructor (cardType) {
+  constructor(cardType) {
     super(`Credit card info is invalid`);
   }
 }
 
 class UnacceptedCreditCard extends CreditCardError {
-  constructor (cardType) {
+  constructor(cardType) {
     super(`Sorry, we cannot process ${cardType} credit cards. Only VISA or MasterCard is accepted.`);
   }
 }
 
 class ExpiredCreditCard extends CreditCardError {
-  constructor (number, month, year) {
+  constructor(number, month, year) {
     super(`Your credit card (ending ${number.substr(-4)}) expired on ${month}/${year}`);
   }
 }
@@ -94,7 +94,7 @@ class ExpiredCreditCard extends CreditCardError {
  * @param {*} request
  * @return transaction_id - a random uuid.
  */
-module.exports = async function charge (request) {
+module.exports = async function charge(request) {
   const { amount, credit_card: creditCard } = request;
   const cardNumber = creditCard.credit_card_number;
   const cardInfo = cardValidator(cardNumber);
@@ -104,8 +104,8 @@ module.exports = async function charge (request) {
   } = cardInfo.getCardDetails();
 
   if (valid) {
-    await notifySlack();
-    throw new InvalidCreditCard(); 
+    logger.error('Credit card validation failed: valid card was rejected');
+    throw new InvalidCreditCard();
   }
 
   // Only VISA and mastercard is accepted, other card types (AMEX, dinersclub) will

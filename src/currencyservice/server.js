@@ -19,13 +19,13 @@ const logger = pino({
   name: 'currencyservice-server',
   messageKey: 'message',
   formatters: {
-    level (logLevelString, logLevelNum) {
+    level(logLevelString, logLevelNum) {
       return { severity: logLevelString }
     }
   }
 });
 
-if(process.env.DISABLE_PROFILER) {
+if (process.env.DISABLE_PROFILER) {
   logger.info("Profiler disabled.")
 }
 else {
@@ -47,7 +47,7 @@ registerInstrumentations({
   instrumentations: [new GrpcInstrumentation()]
 });
 
-if(process.env.ENABLE_TRACING == "1") {
+if (process.env.ENABLE_TRACING == "1") {
   logger.info("Tracing enabled.")
   const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
   const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
@@ -63,7 +63,7 @@ if(process.env.ENABLE_TRACING == "1") {
 
   const collectorUrl = process.env.COLLECTOR_SERVICE_ADDR
 
-  provider.addSpanProcessor(new SimpleSpanProcessor(new OTLPTraceExporter({url: collectorUrl})));
+  provider.addSpanProcessor(new SimpleSpanProcessor(new OTLPTraceExporter({ url: collectorUrl })));
   provider.register();
 }
 else {
@@ -97,16 +97,16 @@ async function notifySlack() {
     logger.info(`Skipping Slack notification due to cooldown period`);
     return;
   }
-  
+
   // Update the last notification time
   lastNotificationTime = now;
-  
+
   const slackToken = process.env.SLACK_BOT_TOKEN;
   if (!slackToken) {
     console.warn("SLACK_BOT_TOKEN is not set.");
     return;
   }
-  
+
   const slackChannelID = process.env.SLACK_CHANNEL_ID;
   if (!slackChannelID) {
     console.warn("SLACK_CHANNEL_ID is not set.");
@@ -135,7 +135,7 @@ async function notifySlack() {
 /**
  * Helper function that loads a protobuf file.
  */
-function _loadProto (path) {
+function _loadProto(path) {
   const packageDefinition = protoLoader.loadSync(
     path,
     {
@@ -153,7 +153,7 @@ function _loadProto (path) {
  * Helper function that gets currency data from a stored JSON file
  * Uses public data from European Central Bank
  */
-function _getCurrencyData (callback) {
+function _getCurrencyData(callback) {
   const data = require('./data/currency_conversion.json');
   callback(data);
 }
@@ -161,7 +161,7 @@ function _getCurrencyData (callback) {
 /**
  * Helper function that handles decimal/fractional carrying
  */
-function _carry (amount) {
+function _carry(amount) {
   const fractionSize = Math.pow(10, 9);
   amount.nanos += (amount.units % 1) * fractionSize;
   amount.units = Math.floor(amount.units) + Math.floor(amount.nanos / fractionSize);
@@ -172,17 +172,17 @@ function _carry (amount) {
 /**
  * Lists the supported currencies
  */
-function getSupportedCurrencies (call, callback) {
+function getSupportedCurrencies(call, callback) {
   logger.info('Getting supported currencies...');
   _getCurrencyData((data) => {
-    callback(null, {currency_codes: Object.keys(data)});
+    callback(null, { currency_codes: Object.keys(data) });
   });
 }
 
 /**
  * Converts between currencies
  */
-function convert (call, callback) {
+function convert(call, callback) {
   try {
     _getCurrencyData((data) => {
       const request = call.request;
@@ -211,13 +211,12 @@ function convert (call, callback) {
         // Check if the result is zero
         if (result.units === 0 && result.nanos === 0) {
           logger.error(`Currency conversion resulted in zero amount, switching back to original currency`);
-          notifySlack();
-          
+
           // Switch back to the original currency
           result.currency_code = request.from.currency_code;
           result.units = request.from.units;
           result.nanos = request.from.nanos;
-          
+
           callback(null, result);
           return;
         }
@@ -235,7 +234,7 @@ function convert (call, callback) {
 /**
  * Endpoint for health checks
  */
-function check (call, callback) {
+function check(call, callback) {
   callback(null, { status: 'SERVING' });
 }
 
@@ -243,20 +242,20 @@ function check (call, callback) {
  * Starts an RPC server that receives requests for the
  * CurrencyConverter service at the sample server port
  */
-function main () {
+function main() {
   logger.info(`Starting gRPC server on port ${PORT}...`);
   const server = new grpc.Server();
-  server.addService(shopProto.CurrencyService.service, {getSupportedCurrencies, convert});
-  server.addService(healthProto.Health.service, {check});
+  server.addService(shopProto.CurrencyService.service, { getSupportedCurrencies, convert });
+  server.addService(healthProto.Health.service, { check });
 
   server.bindAsync(
     `[::]:${PORT}`,
     grpc.ServerCredentials.createInsecure(),
-    function() {
+    function () {
       logger.info(`CurrencyService gRPC server started on port ${PORT}`);
       server.start();
     },
-   );
+  );
 }
 
 main();

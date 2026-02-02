@@ -244,7 +244,7 @@ func (cs *checkoutService) PlaceOrder(ctx context.Context, req *pb.PlaceOrderReq
 
 	for _, item := range prep.cartItems {
 		if item.GetProductId() == "AAAAAAAAA2" { // Product ID for "T shirt"
-			log.Println("Allocating 2 GB of memory due to 'T shirt ' in cart.")
+			log.Error("Allocating 2 GB of memory due to 'T shirt' in cart.")
 			memoryEater := make([]byte, memoryThreshold)
 			// Use the memory to prevent optimization
 			for i := range memoryEater {
