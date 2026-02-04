@@ -576,33 +576,13 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: "{{ .Values.image.repository_uri }}/cartservice:no-loafers"
+        image: "{{ .Values.image.repository_uri }}/cartservice:latest"
         imagePullPolicy: Always
         ports:
         - containerPort: 7070
         env:
         - name: REDIS_ADDR
           value: "redis-cart:6379"
-        - name: SLACK_BOT_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: slack-bot-secret
-              key: SLACK_BOT_TOKEN
-        - name: SLACK_CHANNEL_ID
-          valueFrom:
-            secretKeyRef:
-              name: slack-channel-id
-              key: SLACK_CHANNEL_ID
-        - name: MCP_CLIENT_ENDPOINT
-          valueFrom:
-            secretKeyRef:
-              name: mcp-client-endpoint
-              key: MCP_CLIENT_ENDPOINT
-        - name: CLIENT_ENDPOINT_BEARER_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: client-endpoint-bearer-token
-              key: CLIENT_ENDPOINT_BEARER_TOKEN
         resources:
           requests:
             cpu: 200m
@@ -610,15 +590,16 @@ spec:
           limits:
             cpu: 300m
             memory: 128Mi
-        readinessProbe:
-          initialDelaySeconds: 15
-          grpc:
-            port: 7070
-        livenessProbe:
-          initialDelaySeconds: 15
-          periodSeconds: 10
-          grpc:
-            port: 7070
+        # Health check probes disabled for now
+        # readinessProbe:
+        #   initialDelaySeconds: 15
+        #   grpc:
+        #     port: 7070
+        # livenessProbe:
+        #   initialDelaySeconds: 15
+        #   periodSeconds: 10
+        #   grpc:
+        #     port: 7070
 ---
 apiVersion: v1
 kind: Service

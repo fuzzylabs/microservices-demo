@@ -88,6 +88,7 @@ echo -e "${YELLOW}Step 3: Deploying Fluent Bit DaemonSet...${NC}"
 
 kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/fluent-bit/fluent-bit.yaml
 
+
 echo -e "${GREEN}✓ Fluent Bit DaemonSet deployed${NC}"
 
 # ============================================================

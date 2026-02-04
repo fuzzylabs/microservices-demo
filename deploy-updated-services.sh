@@ -5,6 +5,7 @@
 # ============================================================
 # This script rebuilds, pushes, and deploys the following services
 # that were modified with error logging changes:
+#   - cartservice
 #   - checkoutservice
 #   - currencyservice  
 #   - paymentservice
@@ -51,6 +52,7 @@ validate_config() {
 # Services to update
 # ============================================================
 SERVICES=(
+    "cartservice"
     "checkoutservice"
     "currencyservice"
     "paymentservice"
@@ -103,8 +105,12 @@ build_and_push_service() {
         return 1
     fi
     
-    # Build the Docker image for AMD64 (EKS runs on x86_64)
-    docker build --platform linux/amd64 -t "${service}:${IMAGE_TAG}" "$service_dir"
+    # Handle cartservice's different Dockerfile location
+    if [ "$service" = "cartservice" ]; then
+        docker build --platform linux/amd64 -t "${service}:${IMAGE_TAG}" "${service_dir}/src"
+    else
+        docker build --platform linux/amd64 -t "${service}:${IMAGE_TAG}" "$service_dir"
+    fi
     log_success "Built ${service}:${IMAGE_TAG} (linux/amd64)"
     
     # Tag for ECR

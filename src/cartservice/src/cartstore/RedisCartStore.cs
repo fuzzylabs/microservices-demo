@@ -17,133 +17,66 @@ using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using Google.Protobuf;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace cartservice.cartstore
 {
-    public class SlackMessage
-    {
-        public string channel { get; set; }
-        public string text { get; set; }
-    }
-
     public class RedisCartStore : ICartStore
     {
         private readonly IDistributedCache _cache;
-        private static readonly HttpClient httpClient = new HttpClient();
-        private readonly string slackToken;
-        private readonly string slackChannel;
-        private readonly string mcpClientEndpoint;
-        private readonly string clientEndpointBearerToken;
+        private readonly ILogger<RedisCartStore> _logger;
 
-        public RedisCartStore(IDistributedCache cache)
+        public RedisCartStore(IDistributedCache cache, ILogger<RedisCartStore> logger)
         {
             _cache = cache;
-            slackToken = Environment.GetEnvironmentVariable("SLACK_BOT_TOKEN");
-            slackChannel = Environment.GetEnvironmentVariable("SLACK_CHANNEL_ID");
-            mcpClientEndpoint = Environment.GetEnvironmentVariable("MCP_CLIENT_ENDPOINT");
-            clientEndpointBearerToken = Environment.GetEnvironmentVariable("CLIENT_ENDPOINT_BEARER_TOKEN");
-
-            Console.WriteLine($"Environment variables loaded - Slack Token: {!string.IsNullOrEmpty(slackToken)}, Channel: {!string.IsNullOrEmpty(slackChannel)}, MCP Endpoint: {!string.IsNullOrEmpty(mcpClientEndpoint)}, Bearer Token: {!string.IsNullOrEmpty(clientEndpointBearerToken)}");
-        }
-        
-        private async Task NotifySlackAsync(string productId)
-        {
-            Console.WriteLine("Starting Slack notification process...");
-
-            if (string.IsNullOrWhiteSpace(slackToken))
-            {
-                Console.WriteLine("SLACK_BOT_TOKEN is not set in environment variables.");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(slackChannel))
-            {
-                Console.WriteLine("SLACK_CHANNEL_ID is not set in environment variables.");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(mcpClientEndpoint))
-            {
-                Console.WriteLine("MCP_CLIENT_ENDPOINT is not set in environment variables.");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(clientEndpointBearerToken))
-            {
-                Console.WriteLine("CLIENT_ENDPOINT_BEARER_TOKEN is not set in environment variables.");
-                return;
-            }
-
-            try
-            {
-                // Ensure we always have the correct auth header
-                httpClient.DefaultRequestHeaders.Remove("Authorization");
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", slackToken);
-
-                var message = $"🚨 I have detected a 'CRITICAL' error within the cartservice when someone tried to add (productId: `{productId}`). Let me see what I can do. 👀";
-                Console.WriteLine($"Preparing to send Slack message: {message}");
-
-                // Manually construct JSON to avoid reflection-based serialization
-                var json = $"{{\"channel\":\"{slackChannel}\",\"text\":\"{message}\"}}";
-                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
-                Console.WriteLine("Sending request to Slack API...");
-                var response = await httpClient.PostAsync("https://slack.com/api/chat.postMessage", content);
-                var responseBody = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Slack API response: {response.StatusCode}, Body: {responseBody}");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"Slack API request failed: {response.StatusCode}, Response: {responseBody}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception while sending Slack notification: {ex}");
-            }
+            _logger = logger;
         }
 
-        private async Task CallExternalApiAsync()
+        private string EscapeJson(string s)
         {
-            var request = new HttpRequestMessage
-            {
-                Method = HttpMethod.Post,
-                RequestUri = new Uri(mcpClientEndpoint)
-            };
+            if (s == null) return "null";
+            return s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r");
+        }
 
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", clientEndpointBearerToken);
+        private void LogError(string message, Exception ex = null, string userId = null, string productId = null, int? quantity = null)
+        {
+            var timestamp = DateTime.UtcNow.ToString("o");
+            var exMessage = ex != null ? EscapeJson(ex.Message) : "";
+            var fullMessage = ex != null ? $"{message}: {exMessage}" : message;
+            
+            var json = $"{{\"severity\":\"error\",\"message\":\"{EscapeJson(fullMessage)}\",\"service\":\"cartservice\"";
+            if (userId != null) json += $",\"userId\":\"{EscapeJson(userId)}\"";
+            if (productId != null) json += $",\"productId\":\"{EscapeJson(productId)}\"";
+            if (quantity != null) json += $",\"quantity\":{quantity}";
+            if (ex != null) json += $",\"exception\":\"{EscapeJson(ex.ToString())}\"";
+            json += $",\"timestamp\":\"{timestamp}\"}}";
+            
+            Console.WriteLine(json);
+        }
 
-            var response = await httpClient.SendAsync(request);
-
-            var responseBody = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"External API call failed: {response.StatusCode}, Body: {responseBody}");
-            }
-            else
-            {
-                Console.WriteLine($"External API call succeeded: {responseBody}");
-            }
+        private void LogInfo(string message, string userId = null, string productId = null, int? quantity = null)
+        {
+            var timestamp = DateTime.UtcNow.ToString("o");
+            
+            var json = $"{{\"severity\":\"info\",\"message\":\"{EscapeJson(message)}\",\"service\":\"cartservice\"";
+            if (userId != null) json += $",\"userId\":\"{EscapeJson(userId)}\"";
+            if (productId != null) json += $",\"productId\":\"{EscapeJson(productId)}\"";
+            if (quantity != null) json += $",\"quantity\":{quantity}";
+            json += $",\"timestamp\":\"{timestamp}\"}}";
+            
+            Console.WriteLine(json);
         }
 
         public async Task AddItemAsync(string userId, string productId, int quantity)
         {
-            Console.WriteLine($"AddItemAsync called with userId={userId}, productId={productId}, quantity={quantity}");
+            LogInfo("AddItemAsync called", userId, productId, quantity);
 
             if (productId == "AAAAAAAAA4")
             {
-                await NotifySlackAsync(productId);
-                CallExternalApiAsync();
-
-                throw new Exception("Uh-oh, you tried to buy loafers");
+                var error = new Exception("Uh-oh, you tried to buy loafers");
+                LogError("Cart operation failed", error, userId, productId, quantity);
+                throw error;
             }
 
             try
@@ -173,13 +106,14 @@ namespace cartservice.cartstore
             }
             catch (Exception ex)
             {
+                LogError("Can't access cart storage", ex, userId, productId, quantity);
                 throw new RpcException(new Status(StatusCode.FailedPrecondition, $"Can't access cart storage. {ex}"));
             }
         }
 
         public async Task EmptyCartAsync(string userId)
         {
-            Console.WriteLine($"EmptyCartAsync called with userId={userId}");
+            LogInfo("EmptyCartAsync called", userId);
 
             try
             {
@@ -188,17 +122,17 @@ namespace cartservice.cartstore
             }
             catch (Exception ex)
             {
+                LogError("Can't access cart storage", ex, userId);
                 throw new RpcException(new Status(StatusCode.FailedPrecondition, $"Can't access cart storage. {ex}"));
             }
         }
 
         public async Task<Hipstershop.Cart> GetCartAsync(string userId)
         {
-            Console.WriteLine($"GetCartAsync called with userId={userId}");
+            LogInfo("GetCartAsync called", userId);
 
             try
             {
-                // Access the cart from the cache
                 var value = await _cache.GetAsync(userId);
 
                 if (value != null)
@@ -206,25 +140,18 @@ namespace cartservice.cartstore
                     return Hipstershop.Cart.Parser.ParseFrom(value);
                 }
 
-                // We decided to return empty cart in cases when user wasn't in the cache before
                 return new Hipstershop.Cart();
             }
             catch (Exception ex)
             {
+                LogError("Can't access cart storage", ex, userId);
                 throw new RpcException(new Status(StatusCode.FailedPrecondition, $"Can't access cart storage. {ex}"));
             }
         }
 
         public bool Ping()
         {
-            try
-            {
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            return true;
         }
     }
 }

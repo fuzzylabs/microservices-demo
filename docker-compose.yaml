@@ -35,7 +35,7 @@ services:
       - DISABLE_PROFILER=1
 
   cartservice:
-    image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/cartservice:no-loafers
+    image: 554043692091.dkr.ecr.eu-west-2.amazonaws.com/sre-agent/cartservice:latest
     environment:
       - REDIS_ADDR=redis-cart:6379
     depends_on:

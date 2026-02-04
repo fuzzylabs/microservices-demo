@@ -72,7 +72,8 @@ namespace cartservice
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<CartService>();
-                endpoints.MapGrpcService<cartservice.services.HealthCheckService>();
+                // Health check disabled for now
+                // endpoints.MapGrpcService<cartservice.services.HealthCheckService>();
 
                 endpoints.MapGet("/", async context =>
                 {
