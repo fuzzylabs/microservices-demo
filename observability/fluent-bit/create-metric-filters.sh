@@ -44,7 +44,7 @@ echo ""
 for SERVICE in "${SERVICES[@]}"; do
     FILTER_NAME="${SERVICE}-errors"
     METRIC_NAME="${SERVICE}ErrorCount"
-    FILTER_PATTERN="{ ($.severity = \"error\") && ($.kubernetes.pod_name = \"*${SERVICE}*\") }"
+    FILTER_PATTERN="{ ($.log_processed.severity = "error")  && ($.kubernetes.pod_name = \"*${SERVICE}*\") }"
     
     aws logs put-metric-filter \
         --log-group-name "$LOG_GROUP" \
