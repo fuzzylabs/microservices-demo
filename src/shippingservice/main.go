@@ -36,12 +36,12 @@ const (
 	defaultPort = "50051"
 )
 
-var log *logrus.Logger
+var log *logrus.Entry
 
 func init() {
-	log = logrus.New()
-	log.Level = logrus.DebugLevel
-	log.Formatter = &logrus.JSONFormatter{
+	logger := logrus.New()
+	logger.Level = logrus.DebugLevel
+	logger.Formatter = &logrus.JSONFormatter{
 		FieldMap: logrus.FieldMap{
 			logrus.FieldKeyTime:  "timestamp",
 			logrus.FieldKeyLevel: "severity",
@@ -49,7 +49,8 @@ func init() {
 		},
 		TimestampFormat: time.RFC3339Nano,
 	}
-	log.Out = os.Stdout
+	logger.Out = os.Stdout
+	log = logger.WithField("service", "shippingservice")
 }
 
 func main() {

@@ -29,6 +29,9 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
       log_record['severity'] = log_record['severity'].upper()
     else:
       log_record['severity'] = record.levelname
+    if not log_record.get('service'):
+      service_name = record.name.split('.')[0].split('-')[0]
+      log_record['service'] = service_name
 
 def getJSONLogger(name):
   logger = logging.getLogger(name)

@@ -48,16 +48,16 @@ for SERVICE in "${SERVICES[@]}"; do
         --metric-name "$METRIC_NAME" \
         --namespace "$METRIC_NAMESPACE" \
         --statistic Sum \
-        --period 10 \
+        --period 300 \
         --threshold 0 \
         --comparison-operator GreaterThanThreshold \
-        --evaluation-periods 3 \
+        --evaluation-periods 1 \
         --datapoints-to-alarm 1 \
-        --treat-missing-data notBreaching \
+        --treat-missing-data missing \
         --region "$AWS_REGION"
     
     echo -e "${GREEN}✓ ${ALARM_NAME}${NC}"
 done
 
 echo ""
-echo -e "${GREEN}Done! Alarms trigger on any error (10s) and stay ALARM for 30s of no errors.${NC}"
+echo -e "${GREEN}Done! Alarms trigger on 1+ errors per 5-min window. Missing data is ignored (no flapping).${NC}"

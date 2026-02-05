@@ -24,4 +24,4 @@ module.exports = pino({
       return { severity: logLevelString }
     }
   }
-});
+}).child({ service: 'paymentservice' });

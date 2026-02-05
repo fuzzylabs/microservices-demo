@@ -36,7 +36,7 @@ const logger = pino({
       return { severity: logLevelString }
     }
   }
-});
+}).child({ service: 'currencyservice' });
 
 const request = {
   from: {

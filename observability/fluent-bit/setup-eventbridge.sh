@@ -88,7 +88,7 @@ for SERVICE in "${SERVICES[@]}"; do
         --state ENABLED \
         --region "$AWS_REGION"
 
-    # Create Target with STATIC payload for this service
+    # Create Target with STATIC payload for this service (no retries)
     PAYLOAD="{\"log_group\":\"$LOG_GROUP\",\"service_name\":\"$SERVICE\",\"time_range_minutes\":15}"
     
     aws events put-targets \
@@ -98,7 +98,11 @@ for SERVICE in "${SERVICES[@]}"; do
                 \"Id\": \"Target-$SERVICE\",
                 \"Arn\": \"$DEST_ARN\",
                 \"RoleArn\": \"$ROLE_ARN\",
-                \"Input\": \"$(echo $PAYLOAD | sed 's/"/\\"/g')\"
+                \"Input\": \"$(echo $PAYLOAD | sed 's/"/\\"/g')\",
+                \"RetryPolicy\": {
+                    \"MaximumRetryAttempts\": 0,
+                    \"MaximumEventAgeInSeconds\": 60
+                }
             }
         ]" \
         --region "$AWS_REGION"

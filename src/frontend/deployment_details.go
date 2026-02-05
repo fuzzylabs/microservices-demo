@@ -10,7 +10,7 @@ import (
 )
 
 var deploymentDetailsMap map[string]string
-var log *logrus.Logger
+var log *logrus.Entry
 
 func init() {
 	initializeLogger()
@@ -20,9 +20,9 @@ func init() {
 }
 
 func initializeLogger() {
-	log = logrus.New()
-	log.Level = logrus.DebugLevel
-	log.Formatter = &logrus.JSONFormatter{
+	logger := logrus.New()
+	logger.Level = logrus.DebugLevel
+	logger.Formatter = &logrus.JSONFormatter{
 		FieldMap: logrus.FieldMap{
 			logrus.FieldKeyTime:  "timestamp",
 			logrus.FieldKeyLevel: "severity",
@@ -30,7 +30,8 @@ func initializeLogger() {
 		},
 		TimestampFormat: time.RFC3339Nano,
 	}
-	log.Out = os.Stdout
+	logger.Out = os.Stdout
+	log = logger.WithField("service", "frontend")
 }
 
 func loadDeploymentDetails() {

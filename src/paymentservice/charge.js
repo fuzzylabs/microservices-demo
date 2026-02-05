@@ -24,7 +24,7 @@ const logger = pino({
       return { severity: logLevelString }
     }
   }
-});
+}).child({ service: 'paymentservice' });
 
 
 const fetch = require('node-fetch'); // If using Node <18

@@ -42,7 +42,7 @@ import (
 
 var (
 	catalogMutex *sync.Mutex
-	log          *logrus.Logger
+	log          *logrus.Entry
 	extraLatency time.Duration
 
 	port = "3550"
@@ -51,8 +51,8 @@ var (
 )
 
 func init() {
-	log = logrus.New()
-	log.Formatter = &logrus.JSONFormatter{
+	logger := logrus.New()
+	logger.Formatter = &logrus.JSONFormatter{
 		FieldMap: logrus.FieldMap{
 			logrus.FieldKeyTime:  "timestamp",
 			logrus.FieldKeyLevel: "severity",
@@ -60,7 +60,8 @@ func init() {
 		},
 		TimestampFormat: time.RFC3339Nano,
 	}
-	log.Out = os.Stdout
+	logger.Out = os.Stdout
+	log = logger.WithField("service", "productcatalogservice")
 	catalogMutex = &sync.Mutex{}
 }
 

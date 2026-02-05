@@ -23,7 +23,7 @@ const logger = pino({
       return { severity: logLevelString }
     }
   }
-});
+}).child({ service: 'currencyservice' });
 
 if (process.env.DISABLE_PROFILER) {
   logger.info("Profiler disabled.")
