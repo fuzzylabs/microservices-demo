@@ -70,6 +70,32 @@ kubectl get pods -n amazon-cloudwatch
 kubectl logs -n amazon-cloudwatch -l k8s-app=fluent-bit --tail=50
 ```
 
+## Alarm Routing to ECS Task
+
+After creating metric filters and alarms, configure EventBridge to start an ECS task for each service alarm:
+
+```bash
+cd /Users/oscar/Desktop/work/microservices-demo/observability/fluent-bit
+
+AWS_PROFILE=default \
+AWS_REGION=eu-west-2 \
+ECS_CLUSTER=sre-agent \
+TASK_DEFINITION=sre-agent \
+SUBNET_IDS=private-subnet-id \
+SECURITY_GROUP_IDS=sg-aaa \
+LOG_GROUP=/aws/containerinsights/no-loafers-for-you/application \
+SERVICES=cartservice,checkoutservice,currencyservice,paymentservice,shippingservice \
+./setup-eventbridge.sh
+```
+
+What this does:
+- Creates/updates EventBridge rules `Trigger-Agent-<service>` for `*-error` CloudWatch alarms.
+- Sets each rule target to ECS `RunTask` (not API destination).
+- Passes service context to the container as overrides:
+  - `SERVICE_NAME`
+  - `LOG_GROUP`
+  - `TIME_RANGE_MINUTES`
+
 ## Finding ERROR Logs in CloudWatch
 
 Use CloudWatch Logs Insights to query for errors:
